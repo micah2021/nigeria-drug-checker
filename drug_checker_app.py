@@ -2,7 +2,6 @@ import streamlit as st
 import urllib.parse
 from datetime import datetime
 
-# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Nigeria Drug Checker",
     page_icon="💊",
@@ -10,193 +9,188 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-PHARMACIST_WHATSAPP = "2348012345678"   # ← replace with real Nigerian number (no +)
+PHARMACIST_WHATSAPP = "2348012345678"  # ← replace with real number (no +)
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
-    html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
-    .stApp { background: #0f1117; color: #e8e8e8; }
-    h1, h2, h3 { font-family: 'IBM Plex Mono', monospace; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-    .header-bar {
-        background: #00c853; color: #0a0a0a;
-        padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f5f7fa !important;
+        color: #1a1a2e !important;
     }
-    .header-bar h1 { margin: 0; font-size: 1.3rem; color: #0a0a0a; }
-    .header-bar p  { margin: 0; font-size: 0.8rem; opacity: 0.75; }
+    .stApp { background: #f5f7fa; }
 
-    .section-label {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.7rem; letter-spacing: 0.1em;
-        color: #00c853; text-transform: uppercase; margin-bottom: 0.5rem;
+    /* Header */
+    .app-header {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e8ecf0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
-    .step-num {
-        display: inline-block; background: #00c853; color: #000;
-        font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
-        font-weight: 600; width: 22px; height: 22px; border-radius: 50%;
-        text-align: center; line-height: 22px; margin-right: 8px;
+    .app-header .icon-wrap {
+        width: 52px; height: 52px;
+        background: #e8f4fd;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem;
     }
-
-    .result-box {
-        background: #1a1d27; border: 1px solid #2a2d3a;
-        border-left: 3px solid #00c853; border-radius: 0 8px 8px 0;
-        padding: 1rem 1.25rem; margin: 0.75rem 0;
-        font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap;
+    .app-header h1 {
+        margin: 0; font-size: 1.35rem; font-weight: 700;
+        color: #1a1a2e;
     }
-    .result-box.warn   { border-left-color: #ff9800; }
-    .result-box.danger { border-left-color: #f44336; }
-    .result-box.safe   { border-left-color: #00c853; }
-
-    .info-box {
-        background: #1a1d27; border: 1px solid #2a2d3a;
-        border-left: 3px solid #00c853; border-radius: 0 8px 8px 0;
-        padding: 1rem 1.25rem; margin: 0.75rem 0; font-size: 0.9rem; line-height: 1.6;
+    .app-header p {
+        margin: 2px 0 0; font-size: 0.82rem;
+        color: #6b7280;
     }
 
+    /* Section cards */
+    .section-card {
+        background: white;
+        border-radius: 14px;
+        padding: 1.4rem 1.6rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid #e8ecf0;
+    }
+    .section-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #2563eb;
+        margin-bottom: 0.3rem;
+    }
+    .section-desc {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    /* Step badge */
+    .step-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 20px; height: 20px;
+        background: #2563eb; color: white;
+        border-radius: 50%; font-size: 0.7rem; font-weight: 700;
+        margin-right: 6px; vertical-align: middle;
+    }
+
+    /* Result boxes */
+    .result-safe   { background:#f0fdf4; border-left:4px solid #16a34a; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:0.75rem 0; color:#14532d; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; }
+    .result-warn   { background:#fffbeb; border-left:4px solid #d97706; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:0.75rem 0; color:#78350f; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; }
+    .result-danger { background:#fef2f2; border-left:4px solid #dc2626; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:0.75rem 0; color:#7f1d1d; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; }
+    .result-info   { background:#eff6ff; border-left:4px solid #2563eb; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:0.75rem 0; color:#1e3a8a; font-size:0.9rem; line-height:1.6; }
+
+    /* WhatsApp button */
     .wa-btn {
-        display: inline-block; background: #25d366; color: #000 !important;
-        font-weight: 600; padding: 0.7rem 1.6rem; border-radius: 50px;
-        text-decoration: none !important; font-size: 0.95rem; margin-top: 0.75rem;
+        display: inline-block;
+        background: #25d366; color: #fff !important;
+        font-weight: 600; padding: 0.65rem 1.5rem;
+        border-radius: 50px; text-decoration: none !important;
+        font-size: 0.9rem; margin-top: 0.75rem;
+        border: none;
     }
-    .wa-btn:hover { opacity: 0.85; }
+    .wa-btn:hover { background: #1ebe5d; }
 
-    .divider { border: none; border-top: 1px solid #2a2d3a; margin: 1.5rem 0; }
+    /* Quick reference pills */
+    .pill-safe   { display:inline-block; background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; margin-right:6px; }
+    .pill-warn   { display:inline-block; background:#fef9c3; color:#a16207; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; margin-right:6px; }
+    .pill-danger { display:inline-block; background:#fee2e2; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; margin-right:6px; }
+
+    .combo-row {
+        padding: 0.7rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.88rem;
+        color: #374151;
+    }
+    .combo-row:last-child { border-bottom: none; }
+    .combo-note { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+
+    /* Override Streamlit defaults for white bg */
+    .stTextInput > div > div > input {
+        background: #f9fafb !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        color: #1a1a2e !important;
+    }
+    .stTextArea > div > div > textarea {
+        background: #f9fafb !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        color: #1a1a2e !important;
+    }
+    .stButton > button {
+        background: #2563eb !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        padding: 0.6rem 1rem !important;
+    }
+    .stButton > button:hover { background: #1d4ed8 !important; }
+
     footer { visibility: hidden; }
+    #MainMenu { visibility: hidden; }
+    header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div class="header-bar">
-  <span style="font-size:1.8rem">💊</span>
+<div class="app-header">
+  <div class="icon-wrap">💊</div>
   <div>
     <h1>Nigeria Drug Checker</h1>
-    <p>Drug interactions · Photo enquiries · Reviews — all sent to your pharmacist via WhatsApp</p>
+    <p>Drug interactions · Photo enquiries · Reviews — sent to your pharmacist via WhatsApp</p>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BUILT-IN DRUG INTERACTION DATABASE (no AI needed)
+# INTERACTION DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
 INTERACTIONS = {
-    # format: frozenset({drug_a, drug_b}): (severity, explanation, action)
-    frozenset({"amoxicillin", "metronidazole"}): (
-        "Moderate", 
-        "Combining these two antibiotics is common in Nigeria for H. pylori and dental infections. Mild risk of increased GI side effects (nausea, vomiting). No major danger.",
-        "Monitor for nausea. Take with food. Common combination — generally acceptable."
-    ),
-    frozenset({"metformin", "alcohol"}): (
-        "Severe",
-        "Alcohol combined with Metformin significantly increases the risk of lactic acidosis — a dangerous build-up of lactic acid in the blood. Very dangerous.",
-        "Avoid alcohol completely while taking Metformin. Urgent pharmacist review if patient drinks regularly."
-    ),
-    frozenset({"warfarin", "aspirin"}): (
-        "Severe",
-        "Both drugs thin the blood. Combining them greatly increases bleeding risk — internal bleeding, stroke complications.",
-        "Do NOT combine without specialist supervision. Refer to doctor immediately."
-    ),
-    frozenset({"artemether", "lumefantrine"}): (
-        "None",
-        "This is a standard fixed-dose combination (Coartem/ALu) — the two drugs are designed to be taken together for malaria treatment in Nigeria.",
-        "Safe to use together as prescribed. Standard malaria treatment."
-    ),
-    frozenset({"paracetamol", "ibuprofen"}): (
-        "Low",
-        "These two can be safely alternated or combined short-term for pain/fever. Different mechanisms — Paracetamol is liver-processed, Ibuprofen is anti-inflammatory.",
-        "Safe for short-term use. Avoid in patients with liver or kidney disease. Do not exceed recommended doses."
-    ),
-    frozenset({"ciprofloxacin", "antacid"}): (
-        "Moderate",
-        "Antacids containing magnesium or aluminium (e.g. Milk of Magnesia, Gaviscon) reduce Ciprofloxacin absorption by up to 90%, making the antibiotic ineffective.",
-        "Take Ciprofloxacin at least 2 hours before or 6 hours after any antacid."
-    ),
-    frozenset({"lisinopril", "potassium"}): (
-        "Moderate",
-        "ACE inhibitors like Lisinopril raise blood potassium levels. Adding potassium supplements can cause dangerously high potassium (hyperkalaemia) — risk of heart arrhythmia.",
-        "Avoid potassium supplements unless prescribed. Monitor potassium levels regularly."
-    ),
-    frozenset({"diazepam", "alcohol"}): (
-        "Severe",
-        "Both are CNS depressants. Combined, they dangerously suppress breathing and consciousness. Risk of coma and death.",
-        "Never combine. Urgent warning to patient. Pharmacist must counsel strongly."
-    ),
-    frozenset({"amlodipine", "simvastatin"}): (
-        "Moderate",
-        "Amlodipine raises Simvastatin blood levels, increasing risk of muscle damage (myopathy/rhabdomyolysis).",
-        "Limit Simvastatin dose to 20mg/day if taking Amlodipine. Consider switching to Atorvastatin."
-    ),
-    frozenset({"metronidazole", "alcohol"}): (
-        "Severe",
-        "Causes a dangerous disulfiram-like reaction — severe nausea, vomiting, flushing, palpitations, headache. Very common mistake in Nigeria.",
-        "Strictly avoid alcohol during Metronidazole treatment and for 48 hours after finishing."
-    ),
-    frozenset({"cotrimoxazole", "warfarin"}): (
-        "Severe",
-        "Cotrimoxazole (Septrin) significantly potentiates Warfarin — drastically increases bleeding risk.",
-        "Avoid combination. If essential, reduce Warfarin dose and monitor INR very closely."
-    ),
-    frozenset({"tramadol", "ssri"}): (
-        "Severe",
-        "Risk of serotonin syndrome — agitation, confusion, rapid heart rate, high blood pressure, muscle twitching. Can be fatal.",
-        "Avoid combination. Refer to doctor. If patient is on antidepressants, flag urgently."
-    ),
-    frozenset({"aspirin", "ibuprofen"}): (
-        "Moderate",
-        "Both are NSAIDs. Combining increases risk of stomach ulcers and GI bleeding. Ibuprofen can also block aspirin's cardioprotective effect.",
-        "Avoid combining. If patient needs both, take aspirin 30 mins before Ibuprofen."
-    ),
-    frozenset({"chloroquine", "antacid"}): (
-        "Moderate",
-        "Antacids reduce Chloroquine absorption. Less effective malaria or lupus treatment.",
-        "Separate doses by at least 4 hours."
-    ),
-    frozenset({"rifampicin", "oral contraceptive"}): (
-        "Severe",
-        "Rifampicin (TB drug) dramatically reduces effectiveness of oral contraceptives — high risk of unintended pregnancy.",
-        "Use additional contraception (condoms) throughout TB treatment and for 4 weeks after. Counsel patient clearly."
-    ),
+    frozenset({"amoxicillin", "metronidazole"}): ("Moderate","Common combination for H. pylori and dental infections. Mild GI side effects possible (nausea, vomiting). Generally acceptable.","Take with food. Monitor for nausea. Acceptable combination."),
+    frozenset({"metformin", "alcohol"}): ("Severe","Significantly increases risk of lactic acidosis — dangerous build-up of lactic acid in the blood.","Avoid alcohol completely while on Metformin. Urgent pharmacist review if patient drinks regularly."),
+    frozenset({"warfarin", "aspirin"}): ("Severe","Both drugs thin the blood. Greatly increases internal bleeding risk.","Do NOT combine without specialist supervision. Refer to doctor immediately."),
+    frozenset({"artemether", "lumefantrine"}): ("None","Standard fixed-dose combination (Coartem/ALu) — designed to be taken together for malaria.","Safe as prescribed. Standard Nigerian malaria treatment."),
+    frozenset({"paracetamol", "ibuprofen"}): ("Low","Can be safely alternated short-term. Different mechanisms. Paracetamol is liver-processed; Ibuprofen is anti-inflammatory.","Safe short-term. Avoid in liver/kidney disease. Don't exceed recommended doses."),
+    frozenset({"ciprofloxacin", "antacid"}): ("Moderate","Antacids reduce Ciprofloxacin absorption by up to 90%, making the antibiotic ineffective.","Take Ciprofloxacin at least 2 hours before or 6 hours after any antacid."),
+    frozenset({"lisinopril", "potassium"}): ("Moderate","ACE inhibitors raise blood potassium. Adding supplements risks hyperkalaemia — heart arrhythmia.","Avoid potassium supplements unless prescribed. Monitor potassium levels."),
+    frozenset({"diazepam", "alcohol"}): ("Severe","Both suppress the CNS. Combined they dangerously suppress breathing — risk of coma and death.","Never combine. Counsel patient urgently."),
+    frozenset({"amlodipine", "simvastatin"}): ("Moderate","Amlodipine raises Simvastatin levels — increases risk of muscle damage (myopathy).","Limit Simvastatin to 20mg/day with Amlodipine. Consider switching to Atorvastatin."),
+    frozenset({"metronidazole", "alcohol"}): ("Severe","Causes severe disulfiram-like reaction — vomiting, flushing, palpitations. Very common mistake in Nigeria.","Strictly avoid alcohol during treatment and 48 hours after finishing."),
+    frozenset({"cotrimoxazole", "warfarin"}): ("Severe","Septrin greatly potentiates Warfarin — drastically increases bleeding risk.","Avoid combination. If essential, reduce Warfarin dose and monitor INR closely."),
+    frozenset({"tramadol", "ssri"}): ("Severe","Risk of serotonin syndrome — agitation, confusion, rapid heart rate, muscle twitching. Can be fatal.","Avoid. Refer to doctor. Flag urgently if patient is on antidepressants."),
+    frozenset({"aspirin", "ibuprofen"}): ("Moderate","Both NSAIDs. Increases GI bleeding risk. Ibuprofen can block aspirin's cardioprotective effect.","Avoid combining. If needed, take aspirin 30 mins before Ibuprofen."),
+    frozenset({"chloroquine", "antacid"}): ("Moderate","Antacids reduce Chloroquine absorption — less effective malaria treatment.","Separate doses by at least 4 hours."),
+    frozenset({"rifampicin", "oral contraceptive"}): ("Severe","Rifampicin (TB drug) drastically reduces contraceptive effectiveness — high pregnancy risk.","Use condoms throughout TB treatment and 4 weeks after. Counsel patient clearly."),
 }
 
-def check_interaction(drug1: str, drug2: str):
-    """Look up interaction between two drugs. Returns (severity, explanation, action) or None."""
-    key = frozenset({drug1.lower().strip(), drug2.lower().strip()})
-    return INTERACTIONS.get(key, None)
+def check_interaction(d1, d2):
+    return INTERACTIONS.get(frozenset({d1.lower().strip(), d2.lower().strip()}), None)
 
-def severity_class(severity: str) -> str:
-    if severity == "Severe": return "danger"
-    if severity in ("Moderate", "Low"): return "warn"
-    return "safe"
+def sev_cls(s):
+    return "danger" if s == "Severe" else "warn" if s in ("Moderate","Low") else "safe"
 
-def build_wa_interaction(drug1, drug2, condition, severity, explanation, action, client_name=""):
-    timestamp = datetime.now().strftime("%d %b %Y, %H:%M")
-    return f"""💊 *DRUG INTERACTION QUERY — Nigeria Drug Checker*
-🕐 {timestamp}
-
-👤 *Client:* {client_name or 'Anonymous'}
-💊 *Drug 1:* {drug1}
-💊 *Drug 2:* {drug2}
-🏥 *Condition:* {condition or 'Not specified'}
-
-⚠️ *Severity:* {severity}
-
-📋 *Interaction:*
-{explanation}
-
-✅ *Recommended Action:*
-{action}
-
-─────────────────────────
-_Sent via Nigeria Drug Checker_"""
+def sev_icon(s):
+    return "🔴" if s == "Severe" else "🟠" if s == "Moderate" else "🟡" if s == "Low" else "🟢"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 1 — Drug Interaction Checker
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label"><span class="step-num">1</span> Drug interaction checker</div>', unsafe_allow_html=True)
-st.caption("Check if two drugs are safe to take together. Results are based on a built-in Nigerian clinical database — no internet or AI needed.")
+st.markdown("""
+<div class="section-card">
+  <div class="section-title"><span class="step-badge">1</span>Drug interaction checker</div>
+  <div class="section-desc">Check if two drugs are safe to take together. Built-in Nigerian clinical database — no internet or AI needed.</div>
+</div>
+""", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -204,169 +198,131 @@ with col1:
 with col2:
     drug2 = st.text_input("Drug 2", placeholder="e.g. Alcohol")
 
-condition   = st.text_input("Patient condition (optional)", placeholder="e.g. malaria, TB, pregnant, hypertension")
-client_name_1 = st.text_input("Client name (optional)", placeholder="e.g. Emeka Obi", key="cn1")
+condition    = st.text_input("Patient condition (optional)", placeholder="e.g. malaria, TB, pregnant")
+client_name1 = st.text_input("Client name (optional)", placeholder="e.g. Emeka Obi", key="cn1")
 
 if st.button("Check interaction", use_container_width=True):
     if drug1.strip() and drug2.strip():
         result = check_interaction(drug1, drug2)
-
         if result:
             severity, explanation, action = result
-            cls = severity_class(severity)
-            icon = "🔴" if severity == "Severe" else "🟠" if severity == "Moderate" else "🟡" if severity == "Low" else "🟢"
-
-            st.markdown(f"""
-<div class="result-box {cls}">
+            cls  = sev_cls(severity)
+            icon = sev_icon(severity)
+            st.markdown(f"""<div class="result-{cls}">
 {icon} <strong>Severity: {severity}</strong>
 
 📋 <strong>Interaction:</strong>
 {explanation}
 
-✅ <strong>Action:</strong>
+✅ <strong>Recommended action:</strong>
 {action}
 </div>""", unsafe_allow_html=True)
 
-            # WhatsApp button
-            wa_msg = build_wa_interaction(drug1, drug2, condition, severity, explanation, action, client_name_1)
-            wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_msg)}"
-            st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Send result to pharmacist on WhatsApp</a>', unsafe_allow_html=True)
-
+            ts  = datetime.now().strftime("%d %b %Y, %H:%M")
+            msg = f"""💊 *DRUG INTERACTION — Nigeria Drug Checker*\n🕐 {ts}\n\n👤 *Client:* {client_name1 or 'Anonymous'}\n💊 *Drug 1:* {drug1}\n💊 *Drug 2:* {drug2}\n🏥 *Condition:* {condition or 'Not specified'}\n\n⚠️ *Severity:* {severity}\n\n📋 *Interaction:*\n{explanation}\n\n✅ *Action:*\n{action}\n\n_Sent via Nigeria Drug Checker_"""
+            url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(msg)}"
+            st.markdown(f'<a class="wa-btn" href="{url}" target="_blank">📲 Send result to pharmacist on WhatsApp</a>', unsafe_allow_html=True)
         else:
-            # Not in database — ask pharmacist
-            st.markdown(f"""
-<div class="result-box warn">
-🟡 <strong>Not found in database</strong>
+            st.markdown(f"""<div class="result-warn">
+🟡 <strong>Not in database</strong>
 
-The combination of <strong>{drug1}</strong> and <strong>{drug2}</strong> is not in our local database.
-This does not mean it is safe — it means the pharmacist should verify this manually.
-
-We will prepare a WhatsApp message to ask the pharmacist directly.
+<strong>{drug1}</strong> + <strong>{drug2}</strong> is not in our local database. This does not mean it is safe — ask the pharmacist to verify.
 </div>""", unsafe_allow_html=True)
-
-            unknown_msg = f"""💊 *DRUG INTERACTION QUERY — Nigeria Drug Checker*
-🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
-
-👤 *Client:* {client_name_1 or 'Anonymous'}
-💊 *Drug 1:* {drug1}
-💊 *Drug 2:* {drug2}
-🏥 *Condition:* {condition or 'Not specified'}
-
-⚠️ This combination was NOT found in the local database.
-Please advise the client whether it is safe to combine these drugs.
-
-─────────────────────────
-_Sent via Nigeria Drug Checker_"""
-            wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(unknown_msg)}"
-            st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Ask pharmacist on WhatsApp</a>', unsafe_allow_html=True)
-
+            ts  = datetime.now().strftime("%d %b %Y, %H:%M")
+            msg = f"""💊 *DRUG QUERY — Nigeria Drug Checker*\n🕐 {ts}\n\n👤 *Client:* {client_name1 or 'Anonymous'}\n💊 *Drug 1:* {drug1}\n💊 *Drug 2:* {drug2}\n🏥 *Condition:* {condition or 'Not specified'}\n\n⚠️ This combination is NOT in our local database.\nPlease advise whether it is safe.\n\n_Sent via Nigeria Drug Checker_"""
+            url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(msg)}"
+            st.markdown(f'<a class="wa-btn" href="{url}" target="_blank">📲 Ask pharmacist on WhatsApp</a>', unsafe_allow_html=True)
     else:
         st.warning("Please enter both drug names.")
 
-st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 2 — Common Nigerian drug combos quick reference
+# SECTION 2 — Quick Reference
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label"><span class="step-num">2</span> Common Nigerian drug combinations — quick reference</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-card">
+  <div class="section-title"><span class="step-badge">2</span>Common Nigerian drug combinations</div>
+  <div class="section-desc">Quick reference for the most important drug pairs in Nigerian clinical practice.</div>
+""", unsafe_allow_html=True)
 
 combos = [
-    ("Coartem (Artemether + Lumefantrine)", "✅ Safe", "safe", "Standard malaria treatment in Nigeria. Take with food."),
-    ("Metronidazole + Alcohol", "🔴 Dangerous", "danger", "Severe reaction. Avoid alcohol during and 48hrs after treatment."),
-    ("Rifampicin + Oral Contraceptives", "🔴 Dangerous", "danger", "TB drug makes contraceptives ineffective. Use condoms throughout."),
-    ("Paracetamol + Ibuprofen", "🟡 Caution", "warn", "Short-term use OK. Avoid in liver/kidney disease."),
-    ("Ciprofloxacin + Antacids", "🟠 Moderate", "warn", "Antacids block absorption. Separate by at least 2 hours."),
-    ("Septrin + Warfarin", "🔴 Dangerous", "danger", "Greatly increases bleeding risk. Avoid combination."),
+    ("safe",   "Artemether + Lumefantrine (Coartem)",         "✅ Safe",      "Standard malaria treatment. Take with food."),
+    ("danger", "Metronidazole + Alcohol",                     "🔴 Dangerous", "Severe reaction. No alcohol during or 48hrs after."),
+    ("danger", "Rifampicin + Oral Contraceptives",            "🔴 Dangerous", "TB drug makes contraceptives fail. Use condoms."),
+    ("warn",   "Paracetamol + Ibuprofen",                     "🟡 Caution",   "Short-term OK. Avoid in liver/kidney disease."),
+    ("warn",   "Ciprofloxacin + Antacids",                    "🟠 Moderate",  "Antacids block absorption. Separate by 2+ hours."),
+    ("danger", "Septrin (Cotrimoxazole) + Warfarin",          "🔴 Dangerous", "Greatly increases bleeding risk. Avoid."),
+    ("danger", "Diazepam + Alcohol",                          "🔴 Dangerous", "Risk of coma and breathing failure."),
 ]
 
-for name, label, cls, note in combos:
-    st.markdown(f'<div class="result-box {cls}"><strong>{label} — {name}</strong><br><span style="opacity:0.85">{note}</span></div>', unsafe_allow_html=True)
+for cls, name, label, note in combos:
+    pill_cls = f"pill-{cls}"
+    st.markdown(f"""
+<div class="combo-row">
+  <span class="{pill_cls}">{label}</span> <strong>{name}</strong>
+  <div class="combo-note">{note}</div>
+</div>""", unsafe_allow_html=True)
 
-st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 3 — Drug photo → WhatsApp
+# SECTION 3 — Drug Photo
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label"><span class="step-num">3</span> Send drug photo to pharmacist</div>', unsafe_allow_html=True)
-st.caption("Upload a photo of your drug pack, tablet, or label. We'll prepare a WhatsApp message with all your details for the pharmacist to review.")
+st.markdown("""
+<div class="section-card">
+  <div class="section-title"><span class="step-badge">3</span>Send drug photo to pharmacist</div>
+  <div class="section-desc">Upload a photo of your drug pack or label. We'll prepare a WhatsApp message with your details for the pharmacist to review.</div>
+</div>
+""", unsafe_allow_html=True)
 
-uploaded_file   = st.file_uploader("Upload drug image", type=["jpg", "jpeg", "png", "webp"])
-client_name_3   = st.text_input("Your name", placeholder="e.g. Chukwuemeka Eze", key="cn3")
-client_phone    = st.text_input("Your phone number (optional)", placeholder="e.g. 08012345678")
-client_concern  = st.text_area("Your question or concern", placeholder="e.g. Is this drug safe for my 4-year-old? Can I take it with Paracetamol?", height=100)
+uploaded_file  = st.file_uploader("Upload drug image", type=["jpg","jpeg","png","webp"])
+client_name3   = st.text_input("Your name", placeholder="e.g. Chukwuemeka Eze", key="cn3")
+client_phone   = st.text_input("Your phone number (optional)", placeholder="e.g. 08012345678")
+client_concern = st.text_area("Your question or concern", placeholder="e.g. Is this safe for my 4-year-old? Can I take it with Paracetamol?", height=90)
 
 if uploaded_file:
-    st.image(uploaded_file, caption="Preview — " + uploaded_file.name, use_column_width=True)
+    st.image(uploaded_file, caption=uploaded_file.name, use_column_width=True)
 
 if st.button("📲 Prepare WhatsApp message", use_container_width=True, disabled=uploaded_file is None):
     if not client_concern.strip():
-        st.warning("Please describe your question or concern before sending.")
+        st.warning("Please describe your concern before sending.")
     else:
-        wa_photo_msg = f"""💊 *DRUG PHOTO ENQUIRY — Nigeria Drug Checker*
-🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
+        ts  = datetime.now().strftime("%d %b %Y, %H:%M")
+        msg = f"""💊 *DRUG PHOTO ENQUIRY — Nigeria Drug Checker*\n🕐 {ts}\n\n👤 *Client:* {client_name3.strip() or 'Anonymous'}\n📞 *Phone:* {client_phone.strip() or 'Not provided'}\n\n❓ *Concern:*\n{client_concern.strip()}\n\n📸 *Image:* {uploaded_file.name}\n_(Client will attach the photo in this chat)_\n\n_Please review and advise. Sent via Nigeria Drug Checker_"""
+        url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(msg)}"
+        st.markdown(f"""<div class="result-info">✅ Message ready! Click below to open WhatsApp, then tap the 📎 attach button to send the drug photo in the same chat.</div>""", unsafe_allow_html=True)
+        st.markdown(f'<a class="wa-btn" href="{url}" target="_blank">📲 Open WhatsApp & send to pharmacist</a>', unsafe_allow_html=True)
 
-👤 *Client:* {client_name_3.strip() or 'Anonymous'}
-📞 *Phone:* {client_phone.strip() or 'Not provided'}
-
-❓ *Question/Concern:*
-{client_concern.strip()}
-
-📸 *Image file:* {uploaded_file.name}
-_(Client will attach the photo in this WhatsApp chat)_
-
-─────────────────────────
-Please review the drug image and advise the client.
-_Sent via Nigeria Drug Checker_"""
-
-        wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_photo_msg)}"
-
-        st.markdown(
-            '<div class="info-box">✅ Message ready! Click below to open WhatsApp. '
-            '<strong>After sending the text, tap the 📎 attach button in the same chat to send the drug photo too.</strong></div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Open WhatsApp &amp; send to pharmacist</a>', unsafe_allow_html=True)
-
-st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECTION 4 — Client review → WhatsApp
+# SECTION 4 — Review
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label"><span class="step-num">4</span> Leave a review for the pharmacist</div>', unsafe_allow_html=True)
-st.caption("Share your experience. Your review goes straight to the pharmacist on WhatsApp.")
+st.markdown("""
+<div class="section-card">
+  <div class="section-title"><span class="step-badge">4</span>Leave a review for the pharmacist</div>
+  <div class="section-desc">Your review goes straight to the pharmacist on WhatsApp.</div>
+</div>
+""", unsafe_allow_html=True)
 
-reviewer_name = st.text_input("Your name", placeholder="e.g. Adaeze Okonkwo", key="rev_name")
-rating = st.select_slider(
-    "Your rating",
-    options=["⭐ Very poor", "⭐⭐ Poor", "⭐⭐⭐ OK", "⭐⭐⭐⭐ Good", "⭐⭐⭐⭐⭐ Excellent"],
-    value="⭐⭐⭐⭐⭐ Excellent",
-)
-review_text = st.text_area("Your review", placeholder="Tell the pharmacist about your experience…", height=100, key="rev_text")
+reviewer_name = st.text_input("Your name", placeholder="e.g. Adaeze Okonkwo", key="rn")
+rating = st.select_slider("Rating", options=["⭐ Very poor","⭐⭐ Poor","⭐⭐⭐ OK","⭐⭐⭐⭐ Good","⭐⭐⭐⭐⭐ Excellent"], value="⭐⭐⭐⭐⭐ Excellent")
+review_text = st.text_area("Your review", placeholder="Tell the pharmacist about your experience…", height=90, key="rt")
 
 if st.button("📲 Send review to pharmacist", use_container_width=True):
     if not review_text.strip():
         st.warning("Please write your review before sending.")
     else:
-        wa_review = f"""💬 *NEW CLIENT REVIEW — Nigeria Drug Checker*
-🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
-
-👤 *From:* {reviewer_name.strip() or 'Anonymous'}
-{rating}
-
-📝 *Review:*
-{review_text.strip()}
-
-─────────────────────────
-_Sent via Nigeria Drug Checker_"""
-
-        wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_review)}"
+        ts  = datetime.now().strftime("%d %b %Y, %H:%M")
+        msg = f"""💬 *CLIENT REVIEW — Nigeria Drug Checker*\n🕐 {ts}\n\n👤 *From:* {reviewer_name.strip() or 'Anonymous'}\n{rating}\n\n📝 *Review:*\n{review_text.strip()}\n\n_Sent via Nigeria Drug Checker_"""
+        url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(msg)}"
         st.success("Review ready!")
-        st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Send review on WhatsApp</a>', unsafe_allow_html=True)
+        st.markdown(f'<a class="wa-btn" href="{url}" target="_blank">📲 Send review on WhatsApp</a>', unsafe_allow_html=True)
 
-st.markdown('<hr class="divider">', unsafe_allow_html=True)
-st.markdown("""
-<div style="text-align:center;color:#555;font-size:0.8rem;padding-bottom:1rem">
-  💊 Nigeria Drug Checker &nbsp;·&nbsp; Free to use &nbsp;·&nbsp; No AI required &nbsp;·&nbsp; No data stored<br>
-  Not a substitute for professional medical advice. Always consult your pharmacist.
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("""<div style="text-align:center;color:#9ca3af;font-size:0.78rem;padding-bottom:1rem">
+💊 Nigeria Drug Checker &nbsp;·&nbsp; Free · No AI · No data stored<br>
+Not a substitute for professional medical advice. Always consult your pharmacist.
+</div>""", unsafe_allow_html=True)
