@@ -1,443 +1,372 @@
-"""
-drug_checker_app.py — Nigerian Drug Interaction Checker
-Mobile-optimised for Android phones.
-Rule-based, free, offline, no API key needed.
-"""
-
 import streamlit as st
-import pandas as pd
+import urllib.parse
+from datetime import datetime
 
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="💊 Nigeria Drug Checker",
+    page_title="Nigeria Drug Checker",
     page_icon="💊",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-# ── Mobile CSS ────────────────────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────
+PHARMACIST_WHATSAPP = "2348012345678"   # ← replace with real Nigerian number (no +)
+
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Mobile-first styling */
-html, body, [class*="css"] {
-    font-family: 'Segoe UI', sans-serif;
-}
-.main .block-container {
-    padding: 1rem 1rem 2rem 1rem;
-    max-width: 480px;
-    margin: 0 auto;
-}
-/* Large tap targets */
-.stButton > button {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    border-radius: 12px;
-    font-weight: 600;
-    min-height: 52px;
-}
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #008751, #00A86B);
-    color: white;
-    border: none;
-    font-size: 1.1rem;
-}
-/* Input fields */
-.stTextInput > div > div > input {
-    font-size: 1rem;
-    padding: 0.6rem 0.8rem;
-    border-radius: 10px;
-    min-height: 48px;
-}
-.stSelectbox > div > div {
-    font-size: 1rem;
-    border-radius: 10px;
-    min-height: 48px;
-}
-/* Cards */
-.drug-card {
-    background: white;
-    border-radius: 16px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-left: 5px solid #008751;
-}
-.severity-severe { border-left-color: #D32F2F !important; }
-.severity-moderate { border-left-color: #F57C00 !important; }
-.severity-mild { border-left-color: #F9A825 !important; }
-.severity-safe { border-left-color: #388E3C !important; }
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+    html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
+    .stApp { background: #0f1117; color: #e8e8e8; }
+    h1, h2, h3 { font-family: 'IBM Plex Mono', monospace; }
 
-/* Section headers */
-.section-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin: 1rem 0 0.5rem 0;
-}
-/* Nigerian flag header */
-.app-header {
-    background: linear-gradient(135deg, #008751 0%, #008751 33%, #ffffff 33%, #ffffff 66%, #008751 66%);
-    border-radius: 16px;
-    padding: 1rem;
-    text-align: center;
-    margin-bottom: 1rem;
-    color: white;
-}
-/* Quick buttons */
-.quick-btn {
-    background: #F0F7F4;
-    border: 1px solid #008751;
-    border-radius: 10px;
-    padding: 0.5rem;
-    margin: 0.2rem 0;
-    font-size: 0.85rem;
-}
-/* Expander */
-.streamlit-expanderHeader {
-    font-size: 0.95rem;
-    border-radius: 10px;
-}
-/* Hide sidebar toggle on mobile */
-section[data-testid="stSidebar"] { display: none; }
-/* Bottom nav spacing */
-.bottom-space { height: 80px; }
+    .header-bar {
+        background: #00c853; color: #0a0a0a;
+        padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;
+    }
+    .header-bar h1 { margin: 0; font-size: 1.3rem; color: #0a0a0a; }
+    .header-bar p  { margin: 0; font-size: 0.8rem; opacity: 0.75; }
+
+    .section-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.7rem; letter-spacing: 0.1em;
+        color: #00c853; text-transform: uppercase; margin-bottom: 0.5rem;
+    }
+    .step-num {
+        display: inline-block; background: #00c853; color: #000;
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
+        font-weight: 600; width: 22px; height: 22px; border-radius: 50%;
+        text-align: center; line-height: 22px; margin-right: 8px;
+    }
+
+    .result-box {
+        background: #1a1d27; border: 1px solid #2a2d3a;
+        border-left: 3px solid #00c853; border-radius: 0 8px 8px 0;
+        padding: 1rem 1.25rem; margin: 0.75rem 0;
+        font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap;
+    }
+    .result-box.warn   { border-left-color: #ff9800; }
+    .result-box.danger { border-left-color: #f44336; }
+    .result-box.safe   { border-left-color: #00c853; }
+
+    .info-box {
+        background: #1a1d27; border: 1px solid #2a2d3a;
+        border-left: 3px solid #00c853; border-radius: 0 8px 8px 0;
+        padding: 1rem 1.25rem; margin: 0.75rem 0; font-size: 0.9rem; line-height: 1.6;
+    }
+
+    .wa-btn {
+        display: inline-block; background: #25d366; color: #000 !important;
+        font-weight: 600; padding: 0.7rem 1.6rem; border-radius: 50px;
+        text-decoration: none !important; font-size: 0.95rem; margin-top: 0.75rem;
+    }
+    .wa-btn:hover { opacity: 0.85; }
+
+    .divider { border: none; border-top: 1px solid #2a2d3a; margin: 1.5rem 0; }
+    footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Interaction Database ───────────────────────────────────────────────────────
-INTERACTIONS = [
-    ("artemether-lumefantrine", "efavirenz", "MODERATE",
-     "Efavirenz reduces lumefantrine blood levels by ~40%",
-     "Reduced malaria treatment efficacy",
-     "Monitor treatment response. Repeat RDT at day 3.",
-     "🇳🇬 Common in Nigeria — HIV/malaria co-infection. Monitor closely."),
-
-    ("artemether-lumefantrine", "rifampicin", "SEVERE",
-     "Rifampicin reduces lumefantrine by 68%",
-     "Likely malaria treatment failure",
-     "AVOID. Use artesunate + amodiaquine instead.",
-     "🇳🇬 Never combine — TB/malaria co-infection common in North Nigeria."),
-
-    ("artemether-lumefantrine", "nevirapine", "MODERATE",
-     "Nevirapine reduces lumefantrine exposure",
-     "Reduced malaria treatment efficacy",
-     "Monitor closely. Consider artesunate + amodiaquine.",
-     "🇳🇬 Report treatment failure to SMOH."),
-
-    ("efavirenz", "rifampicin", "MODERATE",
-     "Rifampicin reduces efavirenz levels by 26%",
-     "Risk of HIV virological failure",
-     "Increase efavirenz to 800mg/day if >60kg. Monitor viral load.",
-     "🇳🇬 Nigeria ART Guidelines 2021: standard HIV/TB co-treatment recommendation."),
-
-    ("nevirapine", "rifampicin", "SEVERE",
-     "Rifampicin reduces nevirapine by 37-58%",
-     "High risk of HIV treatment failure",
-     "AVOID. Switch to efavirenz-based regimen.",
-     "🇳🇬 Contraindicated per Nigeria ART Guidelines."),
-
-    ("cotrimoxazole", "methotrexate", "SEVERE",
-     "Additive folate antagonism",
-     "Severe bone marrow suppression",
-     "AVOID combination. Monitor FBC weekly if unavoidable.",
-     "🇳🇬 Cotrimoxazole used widely for HIV prophylaxis."),
-
-    ("fluconazole", "rifampicin", "MODERATE",
-     "Rifampicin reduces fluconazole levels by 23%",
-     "Risk of antifungal treatment failure",
-     "Double fluconazole dose to 800mg/day.",
-     "🇳🇬 Cryptococcal meningitis + TB co-infection in HIV patients."),
-
-    ("metformin", "hydrochlorothiazide", "MILD",
-     "Thiazides cause hyperglycaemia",
-     "Reduced blood sugar control",
-     "Monitor glucose more frequently.",
-     "🇳🇬 Common combination for diabetes + hypertension."),
-
-    ("amlodipine", "rifampicin", "SEVERE",
-     "Rifampicin markedly reduces amlodipine levels",
-     "Loss of blood pressure control",
-     "Avoid if possible. Monitor BP daily if combined.",
-     "🇳🇬 TB patients on rifampicin with hypertension — monitor BP."),
-
-    ("ciprofloxacin", "antacids", "MODERATE",
-     "Antacids reduce ciprofloxacin absorption by 90%",
-     "Reduced antibiotic efficacy",
-     "Take ciprofloxacin 2 hours before antacids.",
-     "🇳🇬 Antacid use very common in Nigeria — counsel patients."),
-
-    ("ciprofloxacin", "metronidazole", "MILD",
-     "Additive QT prolongation risk",
-     "Cardiac arrhythmia risk in susceptible patients",
-     "Use with caution in cardiac patients.",
-     "🇳🇬 Common combination for typhoid/abdominal infections."),
-
-    ("warfarin", "cotrimoxazole", "SEVERE",
-     "Cotrimoxazole inhibits warfarin metabolism",
-     "Elevated INR — serious bleeding risk",
-     "Avoid. If necessary, reduce warfarin 50% and monitor INR every 2-3 days.",
-     "🇳🇬 Important in cardiac patients at teaching hospitals."),
-
-    ("warfarin", "rifampicin", "SEVERE",
-     "Rifampicin powerfully induces warfarin metabolism",
-     "Markedly reduced anticoagulation — thrombosis risk",
-     "Increase warfarin 2-5x and monitor INR every 2-3 days.",
-     "🇳🇬 Specialist management required for TB patients on warfarin."),
-
-    ("metronidazole", "alcohol", "SEVERE",
-     "Metronidazole inhibits alcohol metabolism",
-     "Flushing, vomiting, hypotension (disulfiram reaction)",
-     "No alcohol during treatment and 48 hours after.",
-     "🇳🇬 Counsel patients explicitly about alcohol avoidance."),
-
-    ("primaquine", "any", "SEVERE",
-     "Oxidative stress on G6PD-deficient red cells",
-     "Life-threatening haemolytic anaemia",
-     "ALWAYS screen for G6PD before prescribing primaquine.",
-     "🇳🇬 G6PD deficiency affects ~20% of Nigerian males."),
-
-    ("dapsone", "any", "SEVERE",
-     "Haemolysis in G6PD-deficient patients",
-     "Haemolytic anaemia and methaemoglobinaemia",
-     "Contraindicated in G6PD deficiency. Screen first.",
-     "🇳🇬 Used for leprosy and PCP prophylaxis — critical G6PD check."),
-
-    ("nitrofurantoin", "any", "MODERATE",
-     "Oxidative haemolysis in G6PD deficiency",
-     "Haemolytic anaemia",
-     "Avoid in known G6PD deficiency.",
-     "🇳🇬 High G6PD prevalence in Nigeria — check before prescribing."),
-
-    ("tenofovir", "ibuprofen", "MODERATE",
-     "Both nephrotoxic — additive kidney damage",
-     "Acute kidney injury",
-     "Avoid chronic NSAID use with tenofovir. Monitor creatinine quarterly.",
-     "🇳🇬 Tenofovir is first-line ART backbone. Avoid diclofenac/ibuprofen."),
-
-    ("phenytoin", "cotrimoxazole", "MODERATE",
-     "Cotrimoxazole inhibits phenytoin metabolism",
-     "Phenytoin toxicity — ataxia, confusion",
-     "Monitor phenytoin levels. Reduce dose if toxicity appears.",
-     "🇳🇬 Common in Nigerian epilepsy management."),
-
-    ("hydroxyurea", "didanosine", "SEVERE",
-     "Additive pancreatitis and neuropathy risk",
-     "Severe, potentially fatal pancreatitis",
-     "CONTRAINDICATED. Never combine.",
-     "🇳🇬 Sickle cell patients with HIV — critical interaction."),
-
-    ("doxycycline", "antacids", "MODERATE",
-     "Chelation reduces doxycycline absorption",
-     "Reduced antibiotic efficacy",
-     "Take doxycycline 2 hours before antacids.",
-     "🇳🇬 Used for malaria prophylaxis in Nigeria."),
-
-    ("lisinopril", "potassium", "MODERATE",
-     "ACE inhibitors reduce potassium excretion",
-     "Hyperkalaemia — cardiac arrhythmia risk",
-     "Avoid potassium supplements. Monitor serum K monthly.",
-     "🇳🇬 Avoid with spironolactone in hypertension."),
-
-    ("artesunate", "amodiaquine", "MILD",
-     "Additive QT prolongation and hepatotoxicity",
-     "Mild QT prolongation; rare hepatotoxicity",
-     "Generally safe. Monitor LFTs in prolonged use.",
-     "🇳🇬 FMOH-recommended first-line malaria combination."),
-
-    ("quinine", "antacids", "MILD",
-     "Antacids may reduce quinine absorption",
-     "Slightly reduced quinine levels",
-     "Separate by 2 hours.",
-     "🇳🇬 Quinine used for severe malaria in Nigerian hospitals."),
-
-    ("artemether-lumefantrine", "grapefruit", "MILD",
-     "Grapefruit inhibits CYP3A4",
-     "Possible QT prolongation",
-     "Avoid grapefruit juice. Take with full-fat milk.",
-     "🇳🇬 Take with food to improve lumefantrine absorption."),
-]
-
-G6PD_HIGH = ["primaquine", "dapsone", "nitrofurantoin", "rasburicase"]
-G6PD_MOD  = ["chloroquine", "ciprofloxacin", "cotrimoxazole", "sulphamethoxazole", "norfloxacin"]
-SEV_EMOJI = {"CONTRAINDICATED": "⛔", "SEVERE": "🔴", "MODERATE": "🟠", "MILD": "🟡", "SAFE": "🟢"}
-SEV_ORDER = {"CONTRAINDICATED": 0, "SEVERE": 1, "MODERATE": 2, "MILD": 3, "SAFE": 4}
-SEV_CLASS = {"SEVERE": "severity-severe", "CONTRAINDICATED": "severity-severe",
-             "MODERATE": "severity-moderate", "MILD": "severity-mild"}
-
-COMBOS = [
-    ("Artemether-Lumefantrine", "Cotrimoxazole", "HIV/malaria"),
-    ("Efavirenz", "Rifampicin", "HIV/TB"),
-    ("Artemether-Lumefantrine", "Efavirenz", "HIV/malaria"),
-    ("Metformin", "Hydrochlorothiazide", "DM + HTN"),
-    ("Ciprofloxacin", "Metronidazole", "Typhoid"),
-    ("Amlodipine", "Lisinopril", "Hypertension"),
-]
-
-
-def check(drugs):
-    dl = [d.lower().strip() for d in drugs]
-    found = []
-    seen = set()
-    for a, b, sev, mech, effect, mgmt, note in INTERACTIONS:
-        ma = next((d for d in dl if a in d or d in a), None)
-        mb = next((d for d in dl if b == "any" or b in d or d in b), None)
-        if ma and mb and ma != mb:
-            key = tuple(sorted([ma, mb]))
-            if key not in seen:
-                seen.add(key)
-                found.append({"a": ma.title(), "b": mb.title() if b != "any" else "G6PD-risk drug",
-                               "sev": sev, "mech": mech, "effect": effect,
-                               "mgmt": mgmt, "note": note})
-    found.sort(key=lambda x: SEV_ORDER.get(x["sev"], 9))
-    return found
-
-
-def g6pd_check(drugs):
-    dl = [d.lower().strip() for d in drugs]
-    hi = [d for d in dl if any(r in d or d in r for r in G6PD_HIGH)]
-    mo = [d for d in dl if any(r in d or d in r for r in G6PD_MOD)]
-    return hi, mo
-
-
-# ── App Header ────────────────────────────────────────────────────────────────
+# ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style='text-align:center; padding: 1rem 0 0.5rem 0;'>
-  <div style='font-size:2.5rem;'>💊</div>
-  <div style='font-size:1.4rem; font-weight:800; color:#008751;'>Nigeria Drug Checker</div>
-  <div style='font-size:0.8rem; color:#666;'>🇳🇬 NLEM 2020 · Free · No internet needed</div>
+<div class="header-bar">
+  <span style="font-size:1.8rem">💊</span>
+  <div>
+    <h1>Nigeria Drug Checker</h1>
+    <p>Drug interactions · Photo enquiries · Reviews — all sent to your pharmacist via WhatsApp</p>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Quick Combos ──────────────────────────────────────────────────────────────
-st.markdown("<div class='section-title'>⚡ Quick Check</div>", unsafe_allow_html=True)
-cols = st.columns(2)
-for idx, (d1, d2, cond) in enumerate(COMBOS):
-    with cols[idx % 2]:
-        if st.button(f"{cond}", key=f"q_{idx}", use_container_width=True):
-            st.session_state["d1"] = d1
-            st.session_state["d2"] = d2
+# ══════════════════════════════════════════════════════════════════════════════
+# BUILT-IN DRUG INTERACTION DATABASE (no AI needed)
+# ══════════════════════════════════════════════════════════════════════════════
+INTERACTIONS = {
+    # format: frozenset({drug_a, drug_b}): (severity, explanation, action)
+    frozenset({"amoxicillin", "metronidazole"}): (
+        "Moderate", 
+        "Combining these two antibiotics is common in Nigeria for H. pylori and dental infections. Mild risk of increased GI side effects (nausea, vomiting). No major danger.",
+        "Monitor for nausea. Take with food. Common combination — generally acceptable."
+    ),
+    frozenset({"metformin", "alcohol"}): (
+        "Severe",
+        "Alcohol combined with Metformin significantly increases the risk of lactic acidosis — a dangerous build-up of lactic acid in the blood. Very dangerous.",
+        "Avoid alcohol completely while taking Metformin. Urgent pharmacist review if patient drinks regularly."
+    ),
+    frozenset({"warfarin", "aspirin"}): (
+        "Severe",
+        "Both drugs thin the blood. Combining them greatly increases bleeding risk — internal bleeding, stroke complications.",
+        "Do NOT combine without specialist supervision. Refer to doctor immediately."
+    ),
+    frozenset({"artemether", "lumefantrine"}): (
+        "None",
+        "This is a standard fixed-dose combination (Coartem/ALu) — the two drugs are designed to be taken together for malaria treatment in Nigeria.",
+        "Safe to use together as prescribed. Standard malaria treatment."
+    ),
+    frozenset({"paracetamol", "ibuprofen"}): (
+        "Low",
+        "These two can be safely alternated or combined short-term for pain/fever. Different mechanisms — Paracetamol is liver-processed, Ibuprofen is anti-inflammatory.",
+        "Safe for short-term use. Avoid in patients with liver or kidney disease. Do not exceed recommended doses."
+    ),
+    frozenset({"ciprofloxacin", "antacid"}): (
+        "Moderate",
+        "Antacids containing magnesium or aluminium (e.g. Milk of Magnesia, Gaviscon) reduce Ciprofloxacin absorption by up to 90%, making the antibiotic ineffective.",
+        "Take Ciprofloxacin at least 2 hours before or 6 hours after any antacid."
+    ),
+    frozenset({"lisinopril", "potassium"}): (
+        "Moderate",
+        "ACE inhibitors like Lisinopril raise blood potassium levels. Adding potassium supplements can cause dangerously high potassium (hyperkalaemia) — risk of heart arrhythmia.",
+        "Avoid potassium supplements unless prescribed. Monitor potassium levels regularly."
+    ),
+    frozenset({"diazepam", "alcohol"}): (
+        "Severe",
+        "Both are CNS depressants. Combined, they dangerously suppress breathing and consciousness. Risk of coma and death.",
+        "Never combine. Urgent warning to patient. Pharmacist must counsel strongly."
+    ),
+    frozenset({"amlodipine", "simvastatin"}): (
+        "Moderate",
+        "Amlodipine raises Simvastatin blood levels, increasing risk of muscle damage (myopathy/rhabdomyolysis).",
+        "Limit Simvastatin dose to 20mg/day if taking Amlodipine. Consider switching to Atorvastatin."
+    ),
+    frozenset({"metronidazole", "alcohol"}): (
+        "Severe",
+        "Causes a dangerous disulfiram-like reaction — severe nausea, vomiting, flushing, palpitations, headache. Very common mistake in Nigeria.",
+        "Strictly avoid alcohol during Metronidazole treatment and for 48 hours after finishing."
+    ),
+    frozenset({"cotrimoxazole", "warfarin"}): (
+        "Severe",
+        "Cotrimoxazole (Septrin) significantly potentiates Warfarin — drastically increases bleeding risk.",
+        "Avoid combination. If essential, reduce Warfarin dose and monitor INR very closely."
+    ),
+    frozenset({"tramadol", "ssri"}): (
+        "Severe",
+        "Risk of serotonin syndrome — agitation, confusion, rapid heart rate, high blood pressure, muscle twitching. Can be fatal.",
+        "Avoid combination. Refer to doctor. If patient is on antidepressants, flag urgently."
+    ),
+    frozenset({"aspirin", "ibuprofen"}): (
+        "Moderate",
+        "Both are NSAIDs. Combining increases risk of stomach ulcers and GI bleeding. Ibuprofen can also block aspirin's cardioprotective effect.",
+        "Avoid combining. If patient needs both, take aspirin 30 mins before Ibuprofen."
+    ),
+    frozenset({"chloroquine", "antacid"}): (
+        "Moderate",
+        "Antacids reduce Chloroquine absorption. Less effective malaria or lupus treatment.",
+        "Separate doses by at least 4 hours."
+    ),
+    frozenset({"rifampicin", "oral contraceptive"}): (
+        "Severe",
+        "Rifampicin (TB drug) dramatically reduces effectiveness of oral contraceptives — high risk of unintended pregnancy.",
+        "Use additional contraception (condoms) throughout TB treatment and for 4 weeks after. Counsel patient clearly."
+    ),
+}
 
-st.divider()
+def check_interaction(drug1: str, drug2: str):
+    """Look up interaction between two drugs. Returns (severity, explanation, action) or None."""
+    key = frozenset({drug1.lower().strip(), drug2.lower().strip()})
+    return INTERACTIONS.get(key, None)
 
-# ── Drug Input ────────────────────────────────────────────────────────────────
-st.markdown("<div class='section-title'>💉 Enter Drugs</div>", unsafe_allow_html=True)
-d1 = st.text_input("Drug 1 *", value=st.session_state.get("d1", ""),
-                    placeholder="e.g. Artemether-Lumefantrine")
-d2 = st.text_input("Drug 2 *", value=st.session_state.get("d2", ""),
-                    placeholder="e.g. Efavirenz")
-d3 = st.text_input("Drug 3 (optional)", placeholder="e.g. Cotrimoxazole")
-d4 = st.text_input("Drug 4 (optional)", placeholder="e.g. Rifampicin")
+def severity_class(severity: str) -> str:
+    if severity == "Severe": return "danger"
+    if severity in ("Moderate", "Low"): return "warn"
+    return "safe"
 
-st.markdown("<div class='section-title'>👤 Patient</div>", unsafe_allow_html=True)
-patient = st.selectbox("Patient type", [
-    "Adult", "Pregnant woman", "Child (under 12)",
-    "Elderly (65+)", "G6PD deficiency", "Renal impairment", "Liver disease"
-])
+def build_wa_interaction(drug1, drug2, condition, severity, explanation, action, client_name=""):
+    timestamp = datetime.now().strftime("%d %b %Y, %H:%M")
+    return f"""💊 *DRUG INTERACTION QUERY — Nigeria Drug Checker*
+🕐 {timestamp}
 
-drugs = [x.strip() for x in [d1, d2, d3, d4] if x.strip()]
-go = st.button("🔍 Check Interactions", type="primary", disabled=len(drugs) < 2)
+👤 *Client:* {client_name or 'Anonymous'}
+💊 *Drug 1:* {drug1}
+💊 *Drug 2:* {drug2}
+🏥 *Condition:* {condition or 'Not specified'}
 
-# ── Results ───────────────────────────────────────────────────────────────────
-if go and len(drugs) >= 2:
-    results = check(drugs)
-    hi_g6pd, mo_g6pd = g6pd_check(drugs)
+⚠️ *Severity:* {severity}
 
-    st.divider()
+📋 *Interaction:*
+{explanation}
 
-    # Summary badge
-    if not results and not hi_g6pd:
-        st.success("✅ No major interactions found.\n\nAlways verify with a pharmacist for complex cases.")
+✅ *Recommended Action:*
+{action}
+
+─────────────────────────
+_Sent via Nigeria Drug Checker_"""
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 1 — Drug Interaction Checker
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-label"><span class="step-num">1</span> Drug interaction checker</div>', unsafe_allow_html=True)
+st.caption("Check if two drugs are safe to take together. Results are based on a built-in Nigerian clinical database — no internet or AI needed.")
+
+col1, col2 = st.columns(2)
+with col1:
+    drug1 = st.text_input("Drug 1", placeholder="e.g. Metronidazole")
+with col2:
+    drug2 = st.text_input("Drug 2", placeholder="e.g. Alcohol")
+
+condition   = st.text_input("Patient condition (optional)", placeholder="e.g. malaria, TB, pregnant, hypertension")
+client_name_1 = st.text_input("Client name (optional)", placeholder="e.g. Emeka Obi", key="cn1")
+
+if st.button("Check interaction", use_container_width=True):
+    if drug1.strip() and drug2.strip():
+        result = check_interaction(drug1, drug2)
+
+        if result:
+            severity, explanation, action = result
+            cls = severity_class(severity)
+            icon = "🔴" if severity == "Severe" else "🟠" if severity == "Moderate" else "🟡" if severity == "Low" else "🟢"
+
+            st.markdown(f"""
+<div class="result-box {cls}">
+{icon} <strong>Severity: {severity}</strong>
+
+📋 <strong>Interaction:</strong>
+{explanation}
+
+✅ <strong>Action:</strong>
+{action}
+</div>""", unsafe_allow_html=True)
+
+            # WhatsApp button
+            wa_msg = build_wa_interaction(drug1, drug2, condition, severity, explanation, action, client_name_1)
+            wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_msg)}"
+            st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Send result to pharmacist on WhatsApp</a>', unsafe_allow_html=True)
+
+        else:
+            # Not in database — ask pharmacist
+            st.markdown(f"""
+<div class="result-box warn">
+🟡 <strong>Not found in database</strong>
+
+The combination of <strong>{drug1}</strong> and <strong>{drug2}</strong> is not in our local database.
+This does not mean it is safe — it means the pharmacist should verify this manually.
+
+We will prepare a WhatsApp message to ask the pharmacist directly.
+</div>""", unsafe_allow_html=True)
+
+            unknown_msg = f"""💊 *DRUG INTERACTION QUERY — Nigeria Drug Checker*
+🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
+
+👤 *Client:* {client_name_1 or 'Anonymous'}
+💊 *Drug 1:* {drug1}
+💊 *Drug 2:* {drug2}
+🏥 *Condition:* {condition or 'Not specified'}
+
+⚠️ This combination was NOT found in the local database.
+Please advise the client whether it is safe to combine these drugs.
+
+─────────────────────────
+_Sent via Nigeria Drug Checker_"""
+            wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(unknown_msg)}"
+            st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Ask pharmacist on WhatsApp</a>', unsafe_allow_html=True)
+
     else:
-        worst = results[0]["sev"] if results else "MILD"
-        st.markdown(f"""
-        <div style='background:{"#FFEBEE" if worst in ("SEVERE","CONTRAINDICATED") else "#FFF3E0" if worst=="MODERATE" else "#FFFDE7"};
-                    border-radius:12px; padding:1rem; text-align:center; margin-bottom:1rem;'>
-            <div style='font-size:2rem;'>{SEV_EMOJI.get(worst,"🟡")}</div>
-            <div style='font-size:1.1rem; font-weight:700;'>Highest Risk: {worst}</div>
-            <div style='font-size:0.85rem; color:#555;'>{len(results)} interaction(s) found</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.warning("Please enter both drug names.")
 
-    # Interaction cards
-    for item in results:
-        sev_color = {"SEVERE":"#FFEBEE","CONTRAINDICATED":"#FFEBEE",
-                     "MODERATE":"#FFF3E0","MILD":"#FFFDE7"}.get(item["sev"],"#F1F8E9")
-        border = {"SEVERE":"#D32F2F","CONTRAINDICATED":"#B71C1C",
-                  "MODERATE":"#F57C00","MILD":"#F9A825"}.get(item["sev"],"#388E3C")
-        with st.expander(
-            f"{SEV_EMOJI.get(item['sev'],'🟡')} {item['a']} + {item['b']} — {item['sev']}",
-            expanded=item["sev"] in ("SEVERE","CONTRAINDICATED")
-        ):
-            st.markdown(f"**⚙️ Why:** {item['mech']}")
-            st.markdown(f"**⚡ Effect:** {item['effect']}")
-            st.markdown(f"**✅ Action:** {item['mgmt']}")
-            st.info(item["note"])
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    # G6PD warning
-    if hi_g6pd:
-        st.error(f"⛔ **G6PD HIGH RISK:** {', '.join(hi_g6pd)}\n\nMUST screen for G6PD deficiency first!\n~20% of Nigerian males are affected.")
-    if mo_g6pd:
-        st.warning(f"⚠️ **G6PD CAUTION:** {', '.join(mo_g6pd)}\n\nUse carefully in G6PD deficiency.")
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 2 — Common Nigerian drug combos quick reference
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-label"><span class="step-num">2</span> Common Nigerian drug combinations — quick reference</div>', unsafe_allow_html=True)
 
-    # Patient warnings
-    if patient == "Pregnant woman":
-        st.warning("🤰 **Pregnancy:** Avoid tetracyclines, fluoroquinolones, metronidazole (1st trimester), primaquine.\n\nSafe malaria Rx: Quinine + clindamycin (1st trimester) or AL (2nd/3rd trimester).")
-    elif patient == "Child (under 12)":
-        st.warning("👶 **Paediatric:** Avoid fluoroquinolones and tetracyclines under 8 years. Use weight-based dosing.")
-    elif patient == "Renal impairment":
-        st.warning("🫘 **Renal:** Reduce/avoid: metformin, tenofovir, cotrimoxazole, nitrofurantoin. Monitor creatinine.")
-    elif patient == "G6PD deficiency":
-        st.error("🧬 **G6PD confirmed:** Avoid primaquine, dapsone, nitrofurantoin, high-dose sulphonamides.")
+combos = [
+    ("Coartem (Artemether + Lumefantrine)", "✅ Safe", "safe", "Standard malaria treatment in Nigeria. Take with food."),
+    ("Metronidazole + Alcohol", "🔴 Dangerous", "danger", "Severe reaction. Avoid alcohol during and 48hrs after treatment."),
+    ("Rifampicin + Oral Contraceptives", "🔴 Dangerous", "danger", "TB drug makes contraceptives ineffective. Use condoms throughout."),
+    ("Paracetamol + Ibuprofen", "🟡 Caution", "warn", "Short-term use OK. Avoid in liver/kidney disease."),
+    ("Ciprofloxacin + Antacids", "🟠 Moderate", "warn", "Antacids block absorption. Separate by at least 2 hours."),
+    ("Septrin + Warfarin", "🔴 Dangerous", "danger", "Greatly increases bleeding risk. Avoid combination."),
+]
 
-    # Download
-    report = f"NIGERIA DRUG INTERACTION REPORT\n{'='*40}\n"
-    report += f"Drugs: {' + '.join(drugs)}\nPatient: {patient}\nDate: {pd.Timestamp.now().strftime('%Y-%m-%d')}\n\n"
-    for item in results:
-        report += f"\n{item['sev']}: {item['a']} + {item['b']}\n  {item['mech']}\n  Action: {item['mgmt']}\n"
-    report += "\n\nBased on Nigeria NLEM 2020. For clinical decision support only."
-    st.download_button("⬇️ Save Report", report,
-                       file_name="drug_check.txt", mime="text/plain")
+for name, label, cls, note in combos:
+    st.markdown(f'<div class="result-box {cls}"><strong>{label} — {name}</strong><br><span style="opacity:0.85">{note}</span></div>', unsafe_allow_html=True)
 
-# ── Reference ─────────────────────────────────────────────────────────────────
-st.divider()
-with st.expander("⚠️ G6PD Risk Drugs (Nigeria ~20% prevalence)"):
-    st.markdown("""
-| Risk | Drugs |
-|------|-------|
-| 🔴 HIGH | Primaquine, Dapsone, Nitrofurantoin |
-| 🟠 MOD | Chloroquine, Cotrimoxazole, Quinolones |
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-**Always screen before prescribing HIGH risk drugs.**
-""")
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 3 — Drug photo → WhatsApp
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-label"><span class="step-num">3</span> Send drug photo to pharmacist</div>', unsafe_allow_html=True)
+st.caption("Upload a photo of your drug pack, tablet, or label. We'll prepare a WhatsApp message with all your details for the pharmacist to review.")
 
-with st.expander("🦠 HIV/TB/Malaria Co-infection Quick Reference"):
-    st.markdown("""
-| Combo | Issue | Action |
-|-------|-------|--------|
-| RIF + EFV | EFV ↓26% | EFV 800mg if >60kg |
-| RIF + NVP | NVP ↓58% | Switch to EFV |
-| AL + EFV | Lume ↓40% | Monitor day 3 RDT |
-| FLU + RIF | FLU ↓23% | Double fluconazole |
+uploaded_file   = st.file_uploader("Upload drug image", type=["jpg", "jpeg", "png", "webp"])
+client_name_3   = st.text_input("Your name", placeholder="e.g. Chukwuemeka Eze", key="cn3")
+client_phone    = st.text_input("Your phone number (optional)", placeholder="e.g. 08012345678")
+client_concern  = st.text_area("Your question or concern", placeholder="e.g. Is this drug safe for my 4-year-old? Can I take it with Paracetamol?", height=100)
 
-*Nigeria ART Guidelines 2021*
-""")
+if uploaded_file:
+    st.image(uploaded_file, caption="Preview — " + uploaded_file.name, use_column_width=True)
 
-with st.expander("ℹ️ About"):
-    st.markdown("""
-**Nigeria Drug Interaction Checker**
-Built for Nigerian health workers — CHWs, nurses, doctors.
+if st.button("📲 Prepare WhatsApp message", use_container_width=True, disabled=uploaded_file is None):
+    if not client_concern.strip():
+        st.warning("Please describe your question or concern before sending.")
+    else:
+        wa_photo_msg = f"""💊 *DRUG PHOTO ENQUIRY — Nigeria Drug Checker*
+🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
 
-📋 **Data sources:**
-- Nigeria NLEM 2020
-- Nigeria ART Guidelines 2021  
-- Nigeria Malaria Treatment Guidelines 2015
-- WHO Model Formulary
-- UNICEF/WHO G6PD Guidelines
+👤 *Client:* {client_name_3.strip() or 'Anonymous'}
+📞 *Phone:* {client_phone.strip() or 'Not provided'}
 
-⚠️ For clinical decision support only.
-Always verify with a qualified pharmacist.
+❓ *Question/Concern:*
+{client_concern.strip()}
 
-🔬 Part of the **Nigeria Health AI** project
-""")
+📸 *Image file:* {uploaded_file.name}
+_(Client will attach the photo in this WhatsApp chat)_
 
-st.markdown("<div class='bottom-space'></div>", unsafe_allow_html=True)
+─────────────────────────
+Please review the drug image and advise the client.
+_Sent via Nigeria Drug Checker_"""
+
+        wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_photo_msg)}"
+
+        st.markdown(
+            '<div class="info-box">✅ Message ready! Click below to open WhatsApp. '
+            '<strong>After sending the text, tap the 📎 attach button in the same chat to send the drug photo too.</strong></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Open WhatsApp &amp; send to pharmacist</a>', unsafe_allow_html=True)
+
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 4 — Client review → WhatsApp
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-label"><span class="step-num">4</span> Leave a review for the pharmacist</div>', unsafe_allow_html=True)
+st.caption("Share your experience. Your review goes straight to the pharmacist on WhatsApp.")
+
+reviewer_name = st.text_input("Your name", placeholder="e.g. Adaeze Okonkwo", key="rev_name")
+rating = st.select_slider(
+    "Your rating",
+    options=["⭐ Very poor", "⭐⭐ Poor", "⭐⭐⭐ OK", "⭐⭐⭐⭐ Good", "⭐⭐⭐⭐⭐ Excellent"],
+    value="⭐⭐⭐⭐⭐ Excellent",
+)
+review_text = st.text_area("Your review", placeholder="Tell the pharmacist about your experience…", height=100, key="rev_text")
+
+if st.button("📲 Send review to pharmacist", use_container_width=True):
+    if not review_text.strip():
+        st.warning("Please write your review before sending.")
+    else:
+        wa_review = f"""💬 *NEW CLIENT REVIEW — Nigeria Drug Checker*
+🕐 {datetime.now().strftime("%d %b %Y, %H:%M")}
+
+👤 *From:* {reviewer_name.strip() or 'Anonymous'}
+{rating}
+
+📝 *Review:*
+{review_text.strip()}
+
+─────────────────────────
+_Sent via Nigeria Drug Checker_"""
+
+        wa_url = f"https://wa.me/{PHARMACIST_WHATSAPP}?text={urllib.parse.quote(wa_review)}"
+        st.success("Review ready!")
+        st.markdown(f'<a class="wa-btn" href="{wa_url}" target="_blank">📲 Send review on WhatsApp</a>', unsafe_allow_html=True)
+
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown("""
+<div style="text-align:center;color:#555;font-size:0.8rem;padding-bottom:1rem">
+  💊 Nigeria Drug Checker &nbsp;·&nbsp; Free to use &nbsp;·&nbsp; No AI required &nbsp;·&nbsp; No data stored<br>
+  Not a substitute for professional medical advice. Always consult your pharmacist.
+</div>
+""", unsafe_allow_html=True)
