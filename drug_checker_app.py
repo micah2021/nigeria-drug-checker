@@ -176,26 +176,133 @@ st.markdown(f"""
 # ══════════════════════════════════════════════════════════════════════════════
 # INTERACTION DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
-INTERACTIONS = {
-    frozenset({"amoxicillin","metronidazole"}):     ("Moderate","Common for H. pylori and dental infections. Mild GI side effects possible. Generally acceptable.","Take with food. Monitor for nausea."),
-    frozenset({"metformin","alcohol"}):             ("Severe","Significantly increases risk of lactic acidosis — dangerous build-up of lactic acid.","Avoid alcohol completely. Urgent pharmacist review if patient drinks regularly."),
-    frozenset({"warfarin","aspirin"}):              ("Severe","Both thin the blood. Greatly increases internal bleeding risk.","Do NOT combine without specialist supervision. Refer to doctor immediately."),
-    frozenset({"artemether","lumefantrine"}):       ("None","Standard fixed-dose combination (Coartem/ALu) — designed to be taken together for malaria.","Safe as prescribed. Standard Nigerian malaria treatment."),
-    frozenset({"paracetamol","ibuprofen"}):         ("Low","Can be safely alternated short-term. Different mechanisms.","Safe short-term. Avoid in liver/kidney disease. Don't exceed recommended doses."),
-    frozenset({"ciprofloxacin","antacid"}):         ("Moderate","Antacids reduce Ciprofloxacin absorption by up to 90% — antibiotic becomes ineffective.","Take Ciprofloxacin at least 2 hours before or 6 hours after any antacid."),
-    frozenset({"lisinopril","potassium"}):          ("Moderate","ACE inhibitors raise blood potassium. Adding supplements risks dangerous hyperkalaemia.","Avoid potassium supplements unless prescribed. Monitor potassium levels."),
-    frozenset({"diazepam","alcohol"}):              ("Severe","Both suppress the CNS. Dangerously suppress breathing — risk of coma and death.","Never combine. Counsel patient urgently."),
-    frozenset({"amlodipine","simvastatin"}):        ("Moderate","Amlodipine raises Simvastatin levels — increases risk of muscle damage.","Limit Simvastatin to 20mg/day. Consider switching to Atorvastatin."),
-    frozenset({"metronidazole","alcohol"}):         ("Severe","Severe disulfiram-like reaction — vomiting, flushing, palpitations. Very common mistake in Nigeria.","Avoid alcohol during treatment and 48 hours after finishing."),
-    frozenset({"cotrimoxazole","warfarin"}):        ("Severe","Septrin greatly potentiates Warfarin — drastically increases bleeding risk.","Avoid. If essential, reduce Warfarin dose and monitor INR closely."),
-    frozenset({"tramadol","ssri"}):                 ("Severe","Risk of serotonin syndrome — agitation, rapid heart rate, muscle twitching. Can be fatal.","Avoid. Refer to doctor. Flag urgently if patient is on antidepressants."),
-    frozenset({"aspirin","ibuprofen"}):             ("Moderate","Both NSAIDs. Increases GI bleeding risk. Ibuprofen blocks aspirin's cardioprotective effect.","Avoid. If needed, take aspirin 30 mins before Ibuprofen."),
-    frozenset({"chloroquine","antacid"}):           ("Moderate","Antacids reduce Chloroquine absorption — less effective malaria treatment.","Separate doses by at least 4 hours."),
-    frozenset({"rifampicin","oral contraceptive"}): ("Severe","Rifampicin drastically reduces contraceptive effectiveness — high pregnancy risk.","Use condoms throughout TB treatment and 4 weeks after."),
+def make_interactions():
+    raw = {
+        # ── ANTIBIOTICS ───────────────────────────────────────────────────────
+        ("amoxicillin","metronidazole"):      ("Low","Common Nigerian combination for dental infections, H. pylori and mixed bacterial infections. Generally well tolerated.","Take with food. Monitor for nausea and diarrhoea. Acceptable combination."),
+        ("flagyl","amoxicillin"):             ("Low","Flagyl (Metronidazole) + Amoxicillin is a common Nigerian antibiotic pair for dental, gut and gynaecological infections. Generally safe.","Take with food. Avoid alcohol throughout course. Complete full course."),
+        ("flagyl","ampiclox"):               ("Low","Common Nigerian combination. Ampicillin/Cloxacillin + Metronidazole used for mixed infections. Generally acceptable.","Take with food. Avoid alcohol. Do not exceed recommended doses."),
+        ("flagyl","tetracycline"):            ("Low","Used together for H. pylori eradication in Nigeria. Acceptable short-term combination.","Take Tetracycline on empty stomach. Avoid dairy with Tetracycline. Avoid alcohol with Flagyl."),
+        ("flagyl","ciprofloxacin"):           ("Low","Common combination for abdominal, pelvic and GI infections in Nigeria. Generally safe short-term.","Take with food. Avoid alcohol. Complete full antibiotic course."),
+        ("flagyl","doxycycline"):             ("Low","Common for pelvic inflammatory disease (PID) and mixed infections in Nigeria. Generally acceptable.","Avoid alcohol with Flagyl. Take Doxycycline with food and plenty of water. Avoid dairy within 2hrs."),
+        ("amoxicillin","clavulanate"):        ("None","Augmentin is a fixed combination — Amoxicillin + Clavulanate designed to be taken together. Standard Nigerian prescription.","Safe as prescribed. Take with food to reduce GI upset."),
+        ("ampicillin","cloxacillin"):         ("None","Ampiclox is a fixed combination of Ampicillin and Cloxacillin. Designed to be taken together. Common in Nigeria.","Safe as prescribed. Complete full course."),
+        ("ciprofloxacin","antacid"):          ("Moderate","Antacids (Milk of Magnesia, Gelusil) reduce Ciprofloxacin absorption by up to 90% — antibiotic becomes ineffective.","Take Ciprofloxacin at least 2 hours before or 6 hours after any antacid."),
+        ("ciprofloxacin","metronidazole"):    ("Low","Common combination for abdominal, GI and urinary infections. Acceptable short-term.","Take with food. Monitor for dizziness and GI effects. Avoid alcohol with Metronidazole."),
+        ("doxycycline","antacid"):            ("Moderate","Antacids, iron and dairy reduce Doxycycline absorption significantly — makes antibiotic less effective.","Take Doxycycline 2 hours before or 6 hours after antacids, iron or dairy."),
+        ("cotrimoxazole","warfarin"):         ("Severe","Septrin dramatically potentiates Warfarin — drastically increases bleeding risk.","Avoid combination. If essential, reduce Warfarin dose and monitor INR very closely."),
+        ("rifampicin","oral contraceptive"):  ("Severe","Rifampicin (TB drug) drastically reduces oral contraceptive effectiveness — very high unintended pregnancy risk. Very common in Nigeria.","Use condoms throughout TB treatment and for 4 weeks after stopping Rifampicin. Counsel patient clearly."),
+        ("rifampicin","metformin"):           ("Moderate","Rifampicin reduces Metformin effectiveness, leading to poorer blood sugar control in TB+diabetes patients.","Monitor blood sugar more closely. Dose adjustment may be needed."),
+
+        # ── MALARIA DRUGS ─────────────────────────────────────────────────────
+        ("artemether","lumefantrine"):        ("None","Coartem/ALu — standard fixed-dose malaria treatment in Nigeria. These two drugs are designed to be taken together.","Safe as prescribed. Always take with food or milk to improve absorption."),
+        ("coartem","paracetamol"):            ("None","Paracetamol is commonly used alongside Coartem for fever during malaria treatment in Nigeria. Safe combination.","Safe. Take Coartem with food. Standard Nigerian malaria management."),
+        ("chloroquine","antacid"):            ("Moderate","Antacids reduce Chloroquine absorption — less effective malaria or lupus treatment.","Separate doses by at least 4 hours."),
+        ("chloroquine","paracetamol"):        ("None","Common Nigerian malaria treatment combination. No significant interaction.","Safe. Monitor for GI upset. Take Chloroquine with food."),
+        ("artemether","doxycycline"):         ("None","Doxycycline is used as a companion drug in some malaria regimens. Generally acceptable.","Take Doxycycline with food and water. Avoid dairy within 2 hours."),
+        ("quinine","paracetamol"):            ("None","Commonly combined in Nigeria for severe malaria. No significant interaction at standard doses.","Safe. Monitor for quinine side effects — tinnitus, dizziness."),
+        ("quinine","antacid"):               ("Moderate","Antacids reduce Quinine absorption, making malaria treatment less effective.","Separate by at least 2 hours."),
+
+        # ── PAIN / FEVER ──────────────────────────────────────────────────────
+        ("paracetamol","ibuprofen"):          ("Low","Can be safely alternated or combined short-term for pain and fever. Work via different mechanisms.","Safe short-term. Avoid in liver or kidney disease. Do not exceed recommended doses."),
+        ("paracetamol","codeine"):            ("None","Co-codamol — a recognised pain combination. Paracetamol + Codeine work synergistically.","Safe at recommended doses. Do not exceed 8 tablets/day. Risk of dependence with long-term Codeine use."),
+        ("ibuprofen","antacid"):             ("None","Antacids can help reduce ibuprofen-related stomach irritation. Common combination.","Safe. Useful for patients with GI sensitivity to NSAIDs."),
+        ("tramadol","paracetamol"):           ("None","Common Nigerian pain combination. Tramadol + Paracetamol work synergistically. Recognised fixed combination (Ultracet).","Safe at standard doses. Avoid alcohol. Do not exceed recommended doses. Avoid in seizure history."),
+        ("tramadol","codeine"):              ("Severe","Both are opioids. Combining significantly increases risk of respiratory depression, sedation and death.","Never combine. Use one opioid only. Refer to doctor."),
+        ("tramadol","alcohol"):              ("Severe","Combined CNS depression — serious risk of respiratory failure, coma and death.","Never combine. Counsel patient urgently."),
+        ("tramadol","ssri"):                 ("Severe","Risk of serotonin syndrome — agitation, confusion, rapid heart rate, muscle twitching. Can be fatal.","Avoid. Refer to doctor urgently if patient is on antidepressants."),
+        ("aspirin","ibuprofen"):             ("Moderate","Both NSAIDs. Combined increases GI bleeding risk. Ibuprofen blocks aspirin's heart-protective effect.","Avoid combining. If needed, take aspirin 30 mins before Ibuprofen."),
+        ("diclofenac","antacid"):            ("None","Antacids help reduce Diclofenac GI irritation. Common combination.","Safe. Take Diclofenac with food."),
+        ("diclofenac","aspirin"):            ("Moderate","Both NSAIDs — increased risk of GI bleeding and ulcers. Aspirin's cardioprotective effect may be reduced.","Avoid combining unless prescribed. Take with food and antacid if necessary."),
+
+        # ── BLOOD PRESSURE / HEART ────────────────────────────────────────────
+        ("amlodipine","lisinopril"):          ("None","Very common Nigerian antihypertensive combination. Calcium channel blocker + ACE inhibitor. Generally safe and effective.","Safe as prescribed. Monitor blood pressure regularly. Watch for ankle swelling and dry cough."),
+        ("amlodipine","simvastatin"):         ("Moderate","Amlodipine raises Simvastatin blood levels — increases risk of muscle damage (myopathy/rhabdomyolysis).","Limit Simvastatin to 20mg/day when taking Amlodipine. Consider switching to Atorvastatin."),
+        ("lisinopril","potassium"):           ("Moderate","ACE inhibitors raise blood potassium. Adding supplements risks dangerous hyperkalaemia — heart arrhythmia.","Avoid potassium supplements unless prescribed. Monitor potassium levels regularly."),
+        ("warfarin","aspirin"):              ("Severe","Both thin the blood. Combined greatly increases internal and GI bleeding risk.","Do NOT combine without specialist supervision. Refer to doctor immediately."),
+        ("warfarin","ibuprofen"):            ("Severe","NSAIDs increase Warfarin levels and GI bleeding risk significantly.","Avoid. Use Paracetamol for pain instead. Monitor INR if unavoidable."),
+        ("warfarin","flagyl"):               ("Severe","Metronidazole significantly potentiates Warfarin — major bleeding risk.","Avoid. If essential, reduce Warfarin dose and monitor INR very closely."),
+        ("amlodipine","atorvastatin"):        ("None","Common Nigerian combination for hypertension + high cholesterol. No clinically significant interaction.","Safe as prescribed. Monitor for muscle aches."),
+        ("hydrochlorothiazide","lisinopril"): ("None","Common antihypertensive combination in Nigeria. Generally safe and often prescribed together.","Safe. Monitor blood pressure, potassium and kidney function periodically."),
+
+        # ── DIABETES ──────────────────────────────────────────────────────────
+        ("metformin","alcohol"):             ("Severe","Significantly increases risk of lactic acidosis — a dangerous and potentially fatal build-up of lactic acid.","Avoid alcohol completely while on Metformin. Urgent pharmacist review if patient drinks regularly."),
+        ("metformin","glibenclamide"):        ("None","Common Nigerian diabetes combination. Biguanide + Sulphonylurea. Generally well tolerated.","Safe. Monitor blood sugar. Watch for hypoglycaemia especially if meals are skipped."),
+        ("insulin","alcohol"):               ("Severe","Alcohol masks hypoglycaemia symptoms and lowers blood sugar further — risk of dangerous undetected low blood sugar.","Avoid alcohol. If unavoidable, eat food with alcohol and monitor blood sugar closely."),
+        ("glibenclamide","alcohol"):          ("Moderate","Alcohol can cause unpredictable blood sugar changes and may enhance hypoglycaemic effect.","Avoid alcohol. Eat regularly. Monitor blood sugar."),
+
+        # ── ALCOHOL COMBINATIONS ──────────────────────────────────────────────
+        ("metronidazole","alcohol"):          ("Severe","Causes severe disulfiram-like reaction — vomiting, flushing, rapid heartbeat, headache. Very common dangerous mistake in Nigeria.","Strictly avoid ALL alcohol during Metronidazole treatment and for 48 hours after finishing."),
+        ("flagyl","alcohol"):                ("Severe","Flagyl is Metronidazole. Causes severe disulfiram-like reaction with alcohol — vomiting, flushing, palpitations.","Strictly avoid ALL alcohol during Flagyl treatment and for 48 hours after finishing."),
+        ("diazepam","alcohol"):              ("Severe","Both depress the central nervous system. Combined — dangerous respiratory depression, coma, death.","Never combine. Counsel patient urgently."),
+        ("tramadol","beer"):                 ("Severe","Alcohol (including beer) with Tramadol causes severe CNS depression — breathing failure, coma, death.","Never combine. Urgent patient counselling required."),
+
+        # ── VITAMINS / SUPPLEMENTS ────────────────────────────────────────────
+        ("ciprofloxacin","iron"):            ("Moderate","Iron supplements significantly reduce Ciprofloxacin absorption — antibiotic may become ineffective.","Separate Ciprofloxacin and iron by at least 2 hours."),
+        ("doxycycline","iron"):              ("Moderate","Iron reduces Doxycycline absorption by up to 80%.","Take Doxycycline at least 2 hours before or 3 hours after iron supplements."),
+        ("paracetamol","vitamin c"):         ("None","No significant interaction. Vitamin C may slightly increase Paracetamol absorption.","Safe combination. Standard doses only."),
+        ("folic acid","metformin"):          ("None","Metformin may reduce Folate absorption long-term. Common to prescribe together especially in pregnancy.","Safe. Ensure adequate folic acid supplementation with long-term Metformin use."),
+
+        # ── COMMON NIGERIAN BRANDED COMBINATIONS ─────────────────────────────
+        ("septrin","warfarin"):              ("Severe","Cotrimoxazole (Septrin) greatly potentiates Warfarin — drastically increases bleeding risk.","Avoid combination. If essential, reduce Warfarin and monitor INR closely."),
+        ("septrin","metformin"):             ("Moderate","Septrin can mask hypoglycaemia and may enhance blood sugar-lowering effect.","Monitor blood sugar carefully. Counsel patient."),
+        ("gelusil","ciprofloxacin"):         ("Moderate","Gelusil (antacid) reduces Ciprofloxacin absorption significantly — antibiotic less effective.","Separate by at least 2 hours."),
+        ("piriton","alcohol"):               ("Moderate","Chlorphenamine (Piriton) + alcohol causes excessive sedation and drowsiness.","Avoid alcohol. Do not drive after taking Piriton."),
+        ("phenergan","alcohol"):             ("Moderate","Promethazine (Phenergan) + alcohol causes dangerous sedation. Very common combination in Nigeria.","Avoid alcohol. Do not drive. Avoid machinery."),
+        ("penicillin","alcohol"):            ("Low","Alcohol does not directly interact with Penicillin but reduces immune function and impairs recovery.","Avoid alcohol during antibiotic course. Rest and hydrate well."),
+    }
+
+    result = {}
+    for key_tuple, val in raw.items():
+        result[frozenset(key_tuple)] = val
+    return result
+
+INTERACTIONS = make_interactions()
+
+# Brand name → generic name map
+BRAND_TO_GENERIC = {
+    "flagyl":"metronidazole","coartem":"artemether","alu":"lumefantrine",
+    "ampiclox":"ampicillin","augmentin":"amoxicillin","septrin":"cotrimoxazole",
+    "gelusil":"antacid","gaviscon":"antacid","milk of magnesia":"antacid",
+    "maalox":"antacid","zantac":"ranitidine","losec":"omeprazole",
+    "piriton":"chlorphenamine","phenergan":"promethazine","valium":"diazepam",
+    "lexotan":"bromazepam","penicillin v":"penicillin","amoxil":"amoxicillin",
+    "ciproxin":"ciprofloxacin","vibramycin":"doxycycline","panado":"paracetamol",
+    "panadol":"paracetamol","emzor paracetamol":"paracetamol","hedex":"paracetamol",
+    "advil":"ibuprofen","brufen":"ibuprofen","feldene":"piroxicam",
+    "voltaren":"diclofenac","cataflam":"diclofenac","indocin":"indomethacin",
+    "ultram":"tramadol","tramal":"tramadol","beer":"alcohol","stout":"alcohol",
+    "palm wine":"alcohol","ogogoro":"alcohol","spirit":"alcohol","wine":"alcohol",
+    "glucophage":"metformin","diabex":"metformin","daonil":"glibenclamide",
+    "euglucon":"glibenclamide","actrapid":"insulin","mixtard":"insulin",
+    "norvasc":"amlodipine","zestril":"lisinopril","prinivil":"lisinopril",
+    "zocor":"simvastatin","lipitor":"atorvastatin","crestor":"rosuvastatin",
+    "coumadin":"warfarin","aspro":"aspirin","cafenol":"aspirin",
+    "rifampicin":"rifampicin","rifampin":"rifampicin","isoniazid":"isoniazid",
+    "ethambutol":"ethambutol","pyrazinamide":"pyrazinamide",
+    "folic acid":"folic acid","folate":"folic acid","vitamin c":"vitamin c",
+    "ascorbic acid":"vitamin c","ferrous sulphate":"iron","feroglobin":"iron",
+    "astymin":"vitamin","multivitamin":"vitamin",
 }
 
+def normalise(name):
+    n = name.lower().strip()
+    return BRAND_TO_GENERIC.get(n, n)
+
 def check_interaction(d1, d2):
-    return INTERACTIONS.get(frozenset({d1.lower().strip(), d2.lower().strip()}), None)
+    n1, n2 = normalise(d1), normalise(d2)
+    key = frozenset({n1, n2})
+    if key in INTERACTIONS:
+        return INTERACTIONS[key]
+    # Try partial match — e.g. "flagyl 400mg" → "flagyl"
+    for k, v in INTERACTIONS.items():
+        klist = list(k)
+        if (n1 in klist[0] or klist[0] in n1) and (n2 in klist[1] or klist[1] in n2):
+            return v
+        if (n1 in klist[1] or klist[1] in n1) and (n2 in klist[0] or klist[0] in n2):
+            return v
+    return None
+
 def sev_cls(s):  return "danger" if s=="Severe" else "warn" if s in ("Moderate","Low") else "safe"
 def sev_icon(s): return "🔴" if s=="Severe" else "🟠" if s=="Moderate" else "🟡" if s=="Low" else "🟢"
 
