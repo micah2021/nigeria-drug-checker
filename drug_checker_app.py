@@ -77,7 +77,7 @@ ADVERTS = [
     {
         "name":     "HealthPlus Drug Warehouse",
         "tagline":  "Genuine medications delivered to your door across Nigeria. Fast & reliable.",
-        "whatsapp": "2348022222222",   # ← swap with real advertiser number
+        "whatsapp": "2348119389385",   # ← swap with real advertiser number
         "cta":      "Chat with us",
         "label":    "Featured Partner",
         "color":    "orange",
