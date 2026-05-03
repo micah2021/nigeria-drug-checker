@@ -66,9 +66,9 @@ ADVERTS = [
         "emoji":    "🏥",
     },
     {
-        "name":     "Emeka Pharmacy & Stores",
+        "name":     "One Body  Pharmacy & Stores",
         "tagline":  "NAFDAC-certified drugs at the best prices in Lagos. Wholesale & retail available.",
-        "whatsapp": "2348011111111",   # ← swap with real advertiser number
+        "whatsapp": "2348119389385",   # ← swap with real advertiser number
         "cta":      "Order on WhatsApp",
         "label":    "Verified Supplier",
         "color":    "green",
